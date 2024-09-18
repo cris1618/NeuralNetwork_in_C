@@ -6,7 +6,7 @@
 #+LATEX_HEADER: \usepackage{float}
 #+CAPTION: "Dynamism of a Car" by Luigi Russolo (1913).
 #+ATTR_LATEX: :float nil :placement [H] :width 0.5\textwidth
-[[file:dynamism-of-a-car-luigi-russolo.jpg]]
+[[./Images/dynamism-of-a-car-luigi-russolo.jpg]]
 
 ** Credits: 
     Credits for this code go to Nicolai Nielsen, as I followed his YouTube
