@@ -3,10 +3,8 @@
 #+STARTUP: overview hideblocks indent
 #+PROPERTY: header-args:C :main yes :includes <stdio.h> :results output
 
-#+LATEX_HEADER: \usepackage{float}
-#+CAPTION: "Dynamism of a Car" by Luigi Russolo (1913)
-#+ATTR_LATEX: :float nil :placement [H] :width 0.5\textwidth
-[[file:dynamism-of-a-car-luigi-russolo.jpg]]
+*"Dynamism of a Car" by Luigi Russolo (1913)*
+![Project NLC Images](Images/dynamism-of-a-car-luigi-russolo.jpg)
 
 ** Credits: 
     Credits for this code go to Nicolai Nielsen, as I followed his YouTube
