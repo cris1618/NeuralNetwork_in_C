@@ -1,6 +1,12 @@
 #+TITLE: Neural Network in C
 #+AUTHOR: Cristian Del Gobbo (pledged)
-#+ SUBTITLE: Credits for this code go to Nicolai Nielsen, as I followed his YouTube video titled 'Coding a Neural Network from Scratch in C: No Libraries Required.'
 #+STARTUP: overview hideblocks indent
 #+PROPERTY: header-args:C :main yes :includes <stdio.h> :results output
 
+* Credits: 
+  #+begin_src text
+    Credits for this code go to Nicolai Nielsen, as I followed his YouTube
+    video titled ' Coding a Neural Network from Scratch in C: No Libraries
+    Required.'
+  #+end_src
+  
