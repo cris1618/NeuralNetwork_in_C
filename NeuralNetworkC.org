@@ -14,3 +14,22 @@
     Required.'
  
   
+
+* Code
+#+begin_src C :tangle nn.c
+  /*******************************************************/
+  // nn.c: Create a basic NN that can learn XOR in C. 
+  // (C) Cristian Del Gobbo Licence: GPLv3. 
+  // Credits: Nicolai Nielsen
+  /*******************************************************/
+  #include <stdlib.h>
+  #include <math.h>
+  #define NUM_INPUT 2
+  #define NUM_HIDDEN 2
+  #define NUM_OUTPUT 1
+  #define NUM_TRAINING_SETS 4
+
+  const double lr = 0.1f;
+#+end_src
+
+#+RESULTS:
