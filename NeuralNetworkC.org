@@ -9,14 +9,14 @@
 [[./Images/dynamism-of-a-car-luigi-russolo.jpg]]
 
 ** Credits: 
-    Credits for this code go to Nicolai Nielsen, as I followed his YouTube
-    video titled ' Coding a Neural Network from Scratch in C: No Libraries
-    Required.'
+Credits for this code go to Nicolai Nielsen, as I followed his YouTube
+video titled ' Coding a Neural Network from Scratch in C: No Libraries
+Required.'
  
   
 
 * Code
-#+begin_src C :tangle nn.c
+#+begin_src C :cmdline -lm :tangle nn.c :main no 
   /*******************************************************/
   // nn.c: Create a basic NN that can learn XOR in C. 
   // (C) Cristian Del Gobbo Licence: GPLv3. 
@@ -24,12 +24,191 @@
   /*******************************************************/
   #include <stdlib.h>
   #include <math.h>
+  #include <time.h>
   #define NUM_INPUT 2
   #define NUM_HIDDEN 2
   #define NUM_OUTPUT 1
   #define NUM_TRAINING_SETS 4
 
-  const double lr = 0.1f;
+
+  // Name: sigmoid
+  // Purpose: Recreate the sigmoid function for logistic regression
+  // Return: Double
+  // Parameter: Double
+  double sigmoid(double x);
+
+  // Name: DSigmoid
+  // Purpose: Take the derivative of the Sigmoid function
+  // Return: Double
+  // Parameter: Double
+  double DSigmoid(double x);
+
+  // Name: init_weights
+  // Purpose: Initialize random weights.
+  // Return: Double
+  // Parameter: Nothing
+  double init_weights();
+
+
+  // Name: shuffle 
+  // Purpose: Shuffle elements of an array.
+  // Return:Nothing
+  // Parameters: pointer to int array, size of the array
+  void shuflle(int* array, size_t n);
+
+
+  // main function
+  int main(){
+    // Start timer
+    clock_t start, end;
+    start = clock();
+
+    // Learning rate
+    const double lr = 0.1f;
+
+    // Define Layers, Bias, and weights 
+    double hidden_layer[NUM_HIDDEN];
+    double output_layer[NUM_OUTPUT];
+
+    double hidden_layer_bias[NUM_HIDDEN];
+    double output_layer_bias[NUM_OUTPUT];
+
+    double hidden_weights[NUM_INPUT][NUM_HIDDEN];
+    double output_weights[NUM_HIDDEN][NUM_OUTPUT];
+
+    // Define training data
+    double training_inputs[NUM_TRAINING_SETS][NUM_INPUT] = {{0.0f, 0.0f}, 
+                                                            {1.0f, 0.0f}, 
+                                                            {0.0f, 1.0f}, 
+                                                            {1.0f, 1.0f}};
+
+    double training_outputs[NUM_TRAINING_SETS][NUM_OUTPUT] = {{0.0f}, 
+                                                              {1.0f}, 
+                                                              {1.0f}, 
+                                                              {0.0f}};
+    // Forward pass
+    // Input to Hidden layer
+    for(int i = 0; i < NUM_INPUT; i++){
+      for(int j = 0; j < NUM_HIDDEN; j++){
+        hidden_weights[i][j] = init_weights();
+      }
+    }
+
+    // Hidden to Output layer
+    for(int i = 0; i < NUM_HIDDEN; i++){
+      for(int j = 0; j < NUM_OUTPUT; j++){
+        output_weights[i][j] = init_weights();
+      }
+    }
+
+    // Initialize Biases
+    for(int i = 0; i<NUM_OUTPUT; i++){
+      output_layer_bias[i] = init_weights();
+    }
+
+
+    // Shuffle Training set order
+    int training_set_order[] = {0, 1, 2, 3};
+
+    // Number of Epochs to train the model
+    int number_of_epochs = 10000;
+
+    // Train the neural network for n number of epochs
+    for(int epoch = 0; epoch<number_of_epochs; epoch++){
+      shuflle(training_set_order, NUM_TRAINING_SETS);
+      for(int x = 0; x<NUM_TRAINING_SETS; x++){
+        int i = training_set_order[x];
+
+        // Forward pass
+        // Compute Hidden Layer activation
+        for(int j = 0; j < NUM_HIDDEN; j++){
+          double activation = hidden_layer_bias[j];
+          for(int k = 0; k < NUM_INPUT; k++){
+            activation += training_inputs[i][k] * hidden_weights[k][j];
+          }
+          hidden_layer[j] = sigmoid(activation);
+        }
+      
+
+        // Compute Output Layer activation
+        for(int j = 0; j < NUM_OUTPUT; j++){
+          double activation = output_layer_bias[j];
+          for(int k = 0; k < NUM_HIDDEN; k++){
+            activation += hidden_layer[k] * output_weights[k][j];
+          }
+          output_layer[j] = sigmoid(activation);
+        }
+        printf("Input: %g %g  Output: %g  Expected Output: %g \n", 
+               training_inputs[i][0], training_inputs[i][1], 
+               output_layer[0], training_outputs[i][0]);
+
+        // Backpropagation
+        // Compute change in output weights
+        double delta_output[NUM_OUTPUT];
+
+        for(int j = 0; j<NUM_OUTPUT; j++){
+          double error = (training_outputs[i][j] - output_layer[j]);
+          delta_output[j] = error * DSigmoid(output_layer[j]);
+        }
+
+        // Compute change in hidden weights
+        double delta_hidden[NUM_HIDDEN];
+        for(int j = 0; j<NUM_HIDDEN; j++){
+          double error = 0.0f;
+          for(int k = 0; k<NUM_OUTPUT; k++){
+            error += delta_output[k] * output_weights[j][k];
+          }
+          delta_hidden[j] = error * DSigmoid(hidden_layer[j]);
+        }
+
+        // Apply changes in output weights
+        for(int j = 0; j<NUM_OUTPUT; j++){
+          output_layer_bias[j] += delta_output[j] * lr;
+          for(int k = 0; k<NUM_HIDDEN; k++){
+            output_weights[k][j] += hidden_layer[k] * delta_output[j] * lr;
+          }
+        }
+
+        // Apply changes in hidden weights
+        for(int j = 0; j<NUM_HIDDEN; j++){
+          hidden_layer_bias[j] += delta_hidden[j] * lr;
+          for(int k = 0; k<NUM_INPUT; k++){
+            hidden_weights[k][j] += training_inputs[i][k] * delta_hidden[j] * lr;
+          }
+        }
+      }
+    }
+    end = clock();
+    double time_spent = (double)(end-start)/CLOCKS_PER_SEC;
+
+    printf("Time taken to run the NN in C: %f seconds\n", time_spent);
+    return 0;
+  }
+
+  // Function declarations
+  double sigmoid(double x){
+    return 1 / (1 + exp(-x));
+  }
+
+  double DSigmoid(double x){
+    return x * (1-x);
+  }
+
+  double init_weights(){
+    return ((double)rand()) / ((double)RAND_MAX);
+  }
+
+  void shuflle(int* array, size_t n){
+    if(n>1){
+      size_t i;
+      for(i=0; i<n-1; i++){
+        size_t j = i + rand() / (RAND_MAX / (n-i) + 1);
+        int t = array[j];
+        array[j] = array[i];
+        array[i] = t;
+      }
+    }
+  }
 #+end_src
 
 #+RESULTS:
