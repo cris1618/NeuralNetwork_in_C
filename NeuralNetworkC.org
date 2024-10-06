@@ -30,7 +30,6 @@ Required.'
   #define NUM_OUTPUT 1
   #define NUM_TRAINING_SETS 4
 
-
   // Name: sigmoid
   // Purpose: Recreate the sigmoid function for logistic regression
   // Return: Double
@@ -138,8 +137,8 @@ Required.'
           }
           output_layer[j] = sigmoid(activation);
         }
-        printf("Input: %g %g  Output: %g  Expected Output: %g \n", 
-               training_inputs[i][0], training_inputs[i][1], 
+        printf("Epoch: %d Input: %g %g  Output: %g  Expected Output: %g \n", 
+               epoch, training_inputs[i][0], training_inputs[i][1], 
                output_layer[0], training_outputs[i][0]);
 
         // Backpropagation
@@ -178,8 +177,9 @@ Required.'
         }
       }
     }
+
     end = clock();
-    double time_spent = (double)(end-start)/CLOCKS_PER_SEC;
+    double time_spent = ((double)(end-start)/CLOCKS_PER_SEC);
 
     printf("Time taken to run the NN in C: %f seconds\n", time_spent);
     return 0;
@@ -209,6 +209,57 @@ Required.'
       }
     }
   }
+#+end_src
+
+#+RESULTS:
+
+#+begin_src python :results output :tangle nn.py
+  import time
+  import torch
+  import torch.nn as nn
+  import torch.optim as optim
+
+  #Simple NN with PyTorch
+  class SimpleNN(nn.Module):
+      def __init__(self):
+          super(SimpleNN, self).__init__()
+          self.hidden = nn.Linear(2,2)
+          self.output = nn.Linear(2,1)
+          self.sigmoid = nn.Sigmoid()
+        
+      def forward(self, x):
+          x = self.sigmoid(self.hidden(x))
+          x = self.sigmoid(self.output(x))
+          return x
+    
+  #Define the model
+  model = SimpleNN()
+  criterion = nn.MSELoss()
+  optimizer = optim.SGD(model.parameters(), lr=0.1)
+
+  #training data
+  inputs = torch.tensor([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0]])
+  targets = torch.tensor([[0.0], [1.0], [1.0], [0.0]])
+
+
+  #Measure the execution time 
+  start_time = time.time()
+
+  #Training the network
+  epochs = 10000
+  for epoch in range(epochs):
+      for i in range(inputs.size(0)):
+          optimizer.zero_grad()
+          y_pred = model(inputs[i].unsqueeze(0))
+          loss = criterion(y_pred, targets[i].unsqueeze(0))
+          print(f"Epoch: {epoch},  Input: {inputs[i]}, Output: {y_pred.item()},  Expected Output: {targets[i].item()}")
+          loss.backward()
+          optimizer.step()
+
+  # End time
+  end_time = time.time()
+
+  print(f"Time taken to run the NN in Python: {end_time-start_time} seconds")
 #+end_src
 
 #+RESULTS:
