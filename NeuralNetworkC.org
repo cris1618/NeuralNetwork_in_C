@@ -8,12 +8,36 @@
 #+ATTR_LATEX: :float nil :placement [H] :width 0.4\textwidth
 [[./Images/dynamism-of-a-car-luigi-russolo.jpg]]
 
-** Credits: 
+* Credits: 
 Credits for the NN written in C go to Nicolai Nielsen, as I followed his YouTube
 video titled 'Coding a Neural Network from Scratch in C: No Libraries
 Required.'
  
-* Code
+* Code Implementation
+In this notebook, I want to compare a simple Neural Network written in =C= 
+with a more "traditional" Neural Network implemented in =Python= using 
+the =PyTorch= framework.
+
+Both networks are designed to learn and predict the output of the =XOR= 
+operation. The =XOR= function returns =true= (1) when exactly one of the 
+two inputs is =true= and the other is =false=. It returns =false= (0) when 
+both inputs are either =true= or both are =false=.
+
+The Neural Network consists of two =input= nodes, three =hidden layers= 
+with 2 =nodes= each, and one binary =output= (1 or 0). Initially, the network 
+had only one =hidden layer=, but as an exercise, I added two additional =hidden layers=.
+
+The code is somewhat repetitive, especially in the forward and backward passes. 
+This suggests that it could be optimized by creating a potential =C= library with 
+reusable functions to handle these common tasks, similar to how frameworks like =PyTorch= 
+abstract these processes.
+
+#+LATEX_HEADER: \usepackage{float}
+#+CAPTION: "The Creation of Adam" by Michelangelo (1512).
+#+ATTR_LATEX: :float nil :placement [H] :width 0.4\textwidth
+[[./Images/Michelangelo_-_Creation_of_Adam_(cropped).jpg]]
+
+
 ** Neural Network in C
 #+begin_src C :cmdline -lm :tangle nn.c :main no 
   /*******************************************************/
@@ -252,7 +276,7 @@ Required.'
     end = clock();
     double time_spent = ((double)(end-start)/CLOCKS_PER_SEC);
 
-    printf("Time taken to run the NN in C: %f seconds\n", time_spent);
+    printf("\nTime taken to run the NN in C: %f seconds\n", time_spent);
     return 0;
   }
 
@@ -321,7 +345,7 @@ Required.'
   start_time = time.time()
 
   # Training the network
-  epochs = 100
+  epochs = 1000
   for epoch in range(epochs):
       for i in range(inputs.size(0)):
           optimizer.zero_grad()
@@ -334,8 +358,34 @@ Required.'
   # End time
   end_time = time.time()
 
-  print(f"Time taken to run the NN in Python: {end_time - start_time} seconds")
+  print(f"\nTime taken to run the NN in Python: {end_time - start_time} seconds")
 
 #+end_src
 
 #+RESULTS:
+
+* Expected Results
+Not surprisingly, =C= is significantly faster than =Python= when comparing the runtime 
+for the neural network implementations above. Below is a screenshot of the outputs 
+from the =C= and =Python= code, both executed with 1000 epochs:
+
+#+LATEX_HEADER: \usepackage{float}
+#+CAPTION: Final Comparison.
+#+ATTR_LATEX: :float nil :placement [H] :width 0.4\textwidth
+[[./Images/C_vs_Py_1.png]]
+
+However, I want to highlight a few key points:
+
+- Implementing the neural network in =PyTorch= is much easier due to the high level 
+  of abstraction provided by the framework.
+
+- Writing the neural network code in =C= gives a deeper understanding of each step of 
+  the process, making it a valuable learning experience. I would recommend this approach 
+  for beginners to fully grasp the underlying mechanics.
+
+- It was a fun exercise.
+
+
+"il naufragar m'è dolce in questo mare"
+67 114 105 115 116 105 97 110
+
