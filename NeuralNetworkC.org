@@ -49,9 +49,9 @@ abstract these processes.
   #include <math.h>
   #include <time.h>
   #define NUM_INPUT 2
-  #define NUM_HIDDEN_1 2
-  #define NUM_HIDDEN_2 2
-  #define NUM_HIDDEN_3 2
+  #define NUM_HIDDEN_1 3
+  #define NUM_HIDDEN_2 3
+  #define NUM_HIDDEN_3 3
   #define NUM_OUTPUT 1
   #define NUM_TRAINING_SETS 4
 
@@ -80,6 +80,11 @@ abstract these processes.
   // Parameters: pointer to int array, size of the array
   void shuflle(int* array, size_t n);
 
+  double ReLU(double x);
+
+  double LeakyReLU(double x);
+
+  double DLeakyReLU(double x);
 
   // main function
   int main(){
@@ -154,7 +159,7 @@ abstract these processes.
     int training_set_order[] = {0, 1, 2, 3};
 
     // Number of Epochs to train the model
-    int number_of_epochs = 1000;
+    int number_of_epochs = 10000;
 
     // Train the neural network for n number of epochs
     for(int epoch = 0; epoch<number_of_epochs; epoch++){
@@ -169,22 +174,27 @@ abstract these processes.
           for(int k = 0; k < NUM_INPUT; k++){
             activation += training_inputs[i][k] * hidden_weights_input_hidden_1[k][j];
           }
+          //hidden_layer_1[j] =  LeakyReLU(activation);
           hidden_layer_1[j] = sigmoid(activation);
         }
 
         for(int j = 0; j < NUM_HIDDEN_2; j++){
-          double activation = hidden_layer_bias_1[j];
+          double activation = hidden_layer_bias_2[j];
           for(int k = 0; k < NUM_HIDDEN_1; k++){
+            //activation += hidden_layer_1[k] * hidden_weights_hidden_1_to_2[k][j]; //Changed
             activation += training_inputs[i][k] * hidden_weights_hidden_1_to_2[k][j];
           }
+          //hidden_layer_2[j] =   LeakyReLU(activation);
           hidden_layer_2[j] = sigmoid(activation);
         }
 
         for(int j = 0; j < NUM_HIDDEN_3; j++){
-          double activation = hidden_layer_bias_1[j];
+          double activation = hidden_layer_bias_3[j];
           for(int k = 0; k < NUM_HIDDEN_2; k++){
+            //activation += hidden_layer_2[k] * hidden_weights_hidden_2_to_3[k][j]; //Changed
             activation += training_inputs[i][k] * hidden_weights_hidden_2_to_3[k][j];
           }
+          //hidden_layer_3[j] =   LeakyReLU(activation);
           hidden_layer_3[j] = sigmoid(activation);
         }
 
@@ -231,7 +241,7 @@ abstract these processes.
         for(int j = 0; j<NUM_HIDDEN_1; j++){
           double error = 0.0f;
           for(int k = 0; k<NUM_HIDDEN_2; k++){
-            error += delta_hidden_1[k] * hidden_weights_hidden_1_to_2[j][k];
+            error += delta_hidden_2[k] * hidden_weights_hidden_1_to_2[j][k];
           }
           delta_hidden_1[j] = error * DSigmoid(hidden_layer_1[j]);
         }
@@ -281,12 +291,31 @@ abstract these processes.
   }
 
   // Function declarations
+  double max(double x, double y){
+    if(x>y)
+      return x;
+    else
+      return y;
+  }
+
   double sigmoid(double x){
     return 1 / (1 + exp(-x));
   }
 
   double DSigmoid(double x){
     return x * (1-x);
+  }
+
+  double ReLU(double x){
+    return x > 0 ? x : 0;
+  }
+
+  double LeakyReLU(double x){
+    return x > 0 ? x : 0.01 * x;
+  }
+
+  double DLeakyReLU(double x) {
+    return x > 0 ? 1 : 0.01; 
   }
 
   double init_weights(){
@@ -323,12 +352,13 @@ abstract these processes.
           self.hidden_2 = nn.Linear(2, 2)
           self.hidden_3 = nn.Linear(2, 2)
           self.output = nn.Linear(2, 1)
+          self.relu = nn.ReLU()
           self.sigmoid = nn.Sigmoid()
 
       def forward(self, x):
-          x = self.sigmoid(self.hidden_1(x))
-          x = self.sigmoid(self.hidden_2(x))
-          x = self.sigmoid(self.hidden_3(x))
+          x = self.relu(self.hidden_1(x))
+          x = self.relu(self.hidden_2(x))
+          x = self.relu(self.hidden_3(x))
           x = self.sigmoid(self.output(x))
           return x
 
@@ -339,13 +369,15 @@ abstract these processes.
 
   # Training data
   inputs = torch.tensor([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0]])
+  inputs = inputs.repeat(1000, 1)
   targets = torch.tensor([[0.0], [1.0], [1.0], [0.0]])
+  targets = targets.repeat(1000, 1)
 
   # Measure the execution time
   start_time = time.time()
 
   # Training the network
-  epochs = 1000
+  epochs = 1
   for epoch in range(epochs):
       for i in range(inputs.size(0)):
           optimizer.zero_grad()
@@ -361,6 +393,93 @@ abstract these processes.
   print(f"\nTime taken to run the NN in Python: {end_time - start_time} seconds")
 
 #+end_src
+
+#+RESULTS:
+
+** Neural Network in Python (From Scratch)
+#+begin_src python :results output :tangle nns.py
+  import numpy as np
+import random
+ import time
+
+    num_input = 2
+    num_hidden_1 = 3
+    num_hidden_2 = 3
+    num_hidden_3 = 3
+    num_output = 1
+    num_training_set = 4
+
+    def sigmoid(x):
+    return 1/(1+np.exp(-x))
+
+  def DSigmoid(x):
+  return x * (1-x)
+
+def init_weights():
+return random.random()
+
+start_time = time.time()
+
+lr = 0.1
+
+hidden_layer_1 = []
+hidden_layer_2 = []
+hidden_layer_3 = []
+output_layer = []
+
+hidden_layer_bias_1 = []
+hidden_layer_bias_2 = []
+hidden_layer_bias_3 = []
+output_layer_bias = np.random.rand(num_output)
+
+hidden_weights_input_hidden_1 = np.random.rand(num_input, num_hidden_1)
+hidden_weights_hidden_1_to_2 = np.random.rand(num_hidden_1, num_hidden_2)
+hidden_weights_hidden_2_to_3 = np.random.rand(num_hidden_2, num_hiidden_3)
+output_weights = np.random.rand(num_hidden_3, num_output)
+
+training_inputs = [[0.0,0.0],[1.0, 0.0],[0.0, 1.0], [1.0, 1.0]]
+training_outputs = [[0.0],[1.0],[1.0],[0.0]]
+
+training_set_order = [0,1,2,3]
+
+number_of_epochs = 1000
+
+for epoch in range(number_of_epochs):
+training_set_order = random.shuffle(training_set_order)
+for x in range(num_training_sets):
+i = training_set_order[x]
+
+for j in range(num_hidden_1):
+activation = hidden_layer_bias_1[j]
+for k in range(num_input):
+activation += training_inputs[i][k] * hidden_weights_input_hidden_1[k][j]
+hidden_layer_1[j] = sigmoid(activation)
+
+
+for j in range(num_hidden_2):
+activation = hidden_layer_bias_2[j]
+for k in range(num_hidden_1):
+activation += hidden_layer_1[k] * hidden_weights_hidden_1_to_2[k][j]
+hidden_layer_2[j] = sigmoid(activation)
+
+
+for j in range(num_hidden_3):
+activation = hidden_layer_bias_3[j]
+for k in range(num_hidden_2):
+activation += hidden_layer_2[k] * hidden_weights_hidden_2_to_3[k][j]
+hidden_layer_3[j] = sigmoid(activation)
+
+
+for j in range(num_output):
+activation = output_layer_bias[j]
+for k in range(num_hidden_3):
+activation += hidden_layer_3[k] * output_weights[k][j]
+output_layer[j] = sigmoid(activation)
+
+# Backpropagation
+
+
+    #+end_src
 
 #+RESULTS:
 
