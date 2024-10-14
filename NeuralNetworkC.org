@@ -39,6 +39,9 @@ abstract these processes.
 
 
 ** Neural Network in C
+First of all, we need to define the structure of the =NN= and 
+create the prototype for the functions needed
+#+name: fp
 #+begin_src C :cmdline -lm :tangle nn.c :main no 
   /*******************************************************/
   // nn.c: Create a basic NN that can learn XOR in C. 
@@ -85,8 +88,17 @@ abstract these processes.
   double LeakyReLU(double x);
 
   double DLeakyReLU(double x);
+  
+  #+end_src
+  
+  The layers, weights and biases can be represented through simple =arrays=
+  which store the activation values for the layers arrays and the weights and 
+  biases for the corresponding layers.
 
-  // main function
+  #+name: NN Structure
+  #+begin_src C :cmdline -lm :tangle nn.c :main no :noweb yes
+   // main function
+  <<fp>>
   int main(){
     // Start timer
     clock_t start, end;
@@ -121,6 +133,10 @@ abstract these processes.
                                                               {1.0f}, 
                                                               {1.0f}, 
                                                               {0.0f}};
+#+end_src
+
+#+RESULTS: NN Structure
+
     // Forward pass
     // Input to Hidden layer
     for(int i = 0; i < NUM_INPUT; i++){
