@@ -137,7 +137,10 @@ create the prototype for the functions needed
 
 #+RESULTS: NN Structure
 
-    // Forward pass
+Random Initialize =Weights= and =Biases= in the Network.
+ #+name: init w and b
+ #+begin_src C :cmdline -lm :tangle nn.c :main no :noweb yes
+    <<NN structure>>
     // Input to Hidden layer
     for(int i = 0; i < NUM_INPUT; i++){
       for(int j = 0; j < NUM_HIDDEN_1; j++){
@@ -169,7 +172,9 @@ create the prototype for the functions needed
     for(int i = 0; i<NUM_OUTPUT; i++){
       output_layer_bias[i] = init_weights();
     }
+#+end_src
 
+#+RESULTS: init w and b
 
     // Shuffle Training set order
     int training_set_order[] = {0, 1, 2, 3};
