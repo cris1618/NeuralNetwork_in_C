@@ -175,140 +175,161 @@ Random Initialize =Weights= and =Biases= in the Network.
 #+end_src
 
 #+RESULTS: init w and b
+ 
+Begin =Training= and =Forward= pass.
+ #+name: forward
+ #+begin_src C :cmdline -lm :tangle nn.c :main no :noweb yes
+   <<init w and b>>
 
-    // Shuffle Training set order
-    int training_set_order[] = {0, 1, 2, 3};
+     // Shuffle Training set order
+   int training_set_order[] = {0, 1, 2, 3};
 
-    // Number of Epochs to train the model
-    int number_of_epochs = 10000;
+   // Number of Epochs to train the model
+   int number_of_epochs = 10000;
 
-    // Train the neural network for n number of epochs
-    for(int epoch = 0; epoch<number_of_epochs; epoch++){
-      shuflle(training_set_order, NUM_TRAINING_SETS);
-      for(int x = 0; x<NUM_TRAINING_SETS; x++){
-        int i = training_set_order[x];
+   // Train the neural network for n number of epochs
+   for(int epoch = 0; epoch<number_of_epochs; epoch++){
+     shuflle(training_set_order, NUM_TRAINING_SETS);
+     for(int x = 0; x<NUM_TRAINING_SETS; x++){
+       int i = training_set_order[x];
 
-        // Forward pass
-        // Compute Hidden Layer activation
-        for(int j = 0; j < NUM_HIDDEN_1; j++){
-          double activation = hidden_layer_bias_1[j];
-          for(int k = 0; k < NUM_INPUT; k++){
-            activation += training_inputs[i][k] * hidden_weights_input_hidden_1[k][j];
-          }
-          //hidden_layer_1[j] =  LeakyReLU(activation);
-          hidden_layer_1[j] = sigmoid(activation);
-        }
+       // Forward pass
+       // Compute Hidden Layer activation
+       for(int j = 0; j < NUM_HIDDEN_1; j++){
+         double activation = hidden_layer_bias_1[j];
+         for(int k = 0; k < NUM_INPUT; k++){
+           activation += training_inputs[i][k] * hidden_weights_input_hidden_1[k][j];
+         }
+         //hidden_layer_1[j] =  LeakyReLU(activation);
+         hidden_layer_1[j] = sigmoid(activation);
+       }
 
-        for(int j = 0; j < NUM_HIDDEN_2; j++){
-          double activation = hidden_layer_bias_2[j];
-          for(int k = 0; k < NUM_HIDDEN_1; k++){
-            //activation += hidden_layer_1[k] * hidden_weights_hidden_1_to_2[k][j]; //Changed
-            activation += training_inputs[i][k] * hidden_weights_hidden_1_to_2[k][j];
-          }
-          //hidden_layer_2[j] =   LeakyReLU(activation);
-          hidden_layer_2[j] = sigmoid(activation);
-        }
+       for(int j = 0; j < NUM_HIDDEN_2; j++){
+         double activation = hidden_layer_bias_2[j];
+         for(int k = 0; k < NUM_HIDDEN_1; k++){
+           //activation += hidden_layer_1[k] * hidden_weights_hidden_1_to_2[k][j]; //Changed
+           activation += training_inputs[i][k] * hidden_weights_hidden_1_to_2[k][j];
+         }
+         //hidden_layer_2[j] =   LeakyReLU(activation);
+         hidden_layer_2[j] = sigmoid(activation);
+       }
 
-        for(int j = 0; j < NUM_HIDDEN_3; j++){
-          double activation = hidden_layer_bias_3[j];
-          for(int k = 0; k < NUM_HIDDEN_2; k++){
-            //activation += hidden_layer_2[k] * hidden_weights_hidden_2_to_3[k][j]; //Changed
-            activation += training_inputs[i][k] * hidden_weights_hidden_2_to_3[k][j];
-          }
-          //hidden_layer_3[j] =   LeakyReLU(activation);
-          hidden_layer_3[j] = sigmoid(activation);
-        }
-
-
-        // Compute Output Layer activation
-        for(int j = 0; j < NUM_OUTPUT; j++){
-          double activation = output_layer_bias[j];
-          for(int k = 0; k < NUM_HIDDEN_3; k++){
-            activation += hidden_layer_3[k] * output_weights[k][j];
-          }
-          output_layer[j] = sigmoid(activation);
-        }
+       for(int j = 0; j < NUM_HIDDEN_3; j++){
+         double activation = hidden_layer_bias_3[j];
+         for(int k = 0; k < NUM_HIDDEN_2; k++){
+           //activation += hidden_layer_2[k] * hidden_weights_hidden_2_to_3[k][j]; //Changed
+           activation += training_inputs[i][k] * hidden_weights_hidden_2_to_3[k][j];
+         }
+         //hidden_layer_3[j] =   LeakyReLU(activation);
+         hidden_layer_3[j] = sigmoid(activation);
+       }
 
 
-        // Backpropagation
-        // Compute change in output weights
-        double delta_output[NUM_OUTPUT];
+       // Compute Output Layer activation
+       for(int j = 0; j < NUM_OUTPUT; j++){
+         double activation = output_layer_bias[j];
+         for(int k = 0; k < NUM_HIDDEN_3; k++){
+           activation += hidden_layer_3[k] * output_weights[k][j];
+         }
+         output_layer[j] = sigmoid(activation);
+       }
+#+end_src
 
-        for(int j = 0; j<NUM_OUTPUT; j++){
-          double error = (training_outputs[i][j] - output_layer[j]);
-          delta_output[j] = error * DSigmoid(output_layer[j]);
-        }
+#+RESULTS: forward
 
-        // Compute change in hidden weights
-        double delta_hidden_3[NUM_HIDDEN_3];
-        for(int j = 0; j<NUM_HIDDEN_3; j++){
-          double error = 0.0f;
-          for(int k = 0; k<NUM_OUTPUT; k++){
-            error += delta_output[k] * output_weights[j][k];
-          }
-          delta_hidden_3[j] = error * DSigmoid(hidden_layer_3[j]);
-        }
+=Backpropagation.=
+ #+name: back
+ #+begin_src C :cmdline -lm :tangle nn.c :main no :noweb yes
+   <<forward>>
+     // Backpropagation
+     // Compute change in output weights
+   double delta_output[NUM_OUTPUT];
 
-        double delta_hidden_2[NUM_HIDDEN_2];
-        for(int j = 0; j<NUM_HIDDEN_2; j++){
-          double error = 0.0f;
-          for(int k = 0; k<NUM_HIDDEN_3; k++){
-            error += delta_hidden_3[k] * hidden_weights_hidden_2_to_3[j][k];
-          }
-          delta_hidden_2[j] = error * DSigmoid(hidden_layer_2[j]);
-        }
-
-        double delta_hidden_1[NUM_HIDDEN_1];
-        for(int j = 0; j<NUM_HIDDEN_1; j++){
-          double error = 0.0f;
-          for(int k = 0; k<NUM_HIDDEN_2; k++){
-            error += delta_hidden_2[k] * hidden_weights_hidden_1_to_2[j][k];
-          }
-          delta_hidden_1[j] = error * DSigmoid(hidden_layer_1[j]);
-        }
-
-
-        // Apply changes in output weights
-        for(int j = 0; j<NUM_OUTPUT; j++){
-          output_layer_bias[j] += delta_output[j] * lr;
-          for(int k = 0; k<NUM_HIDDEN_3; k++){
-            output_weights[k][j] += hidden_layer_3[k] * delta_output[j] * lr;
-          }
-        }
-
-        for(int j = 0; j<NUM_HIDDEN_3; j++){
-          hidden_layer_bias_3[j] += delta_hidden_3[j] * lr;
-          for(int k = 0; k<NUM_HIDDEN_2; k++){
-            hidden_weights_hidden_2_to_3[k][j] += hidden_layer_2[k] * delta_hidden_3[j] * lr;
-          }
-        }
-
-        for(int j = 0; j<NUM_HIDDEN_2; j++){
-          hidden_layer_bias_2[j] += delta_hidden_2[j] * lr;
-          for(int k = 0; k<NUM_HIDDEN_1; k++){
-            hidden_weights_hidden_1_to_2[k][j] += hidden_layer_1[k] * delta_hidden_2[j] * lr;
-          }
-        }
-
-        // Apply changes in hidden weights
-        for(int j = 0; j<NUM_HIDDEN_1; j++){
-          hidden_layer_bias_1[j] += delta_hidden_1[j] * lr;
-          for(int k = 0; k<NUM_INPUT; k++){
-            hidden_weights_input_hidden_1[k][j] += training_inputs[i][k] * delta_hidden_1[j] * lr;
-          }
-        }
-        printf("Epoch: %d Input: %g %g  Output: %g  Expected Output: %g \n", 
-               epoch, training_inputs[i][0], training_inputs[i][1], 
-               output_layer[0], training_outputs[i][0]);
-      }
-
+   for(int j = 0; j<NUM_OUTPUT; j++){
+     double error = (training_outputs[i][j] - output_layer[j]);
+     delta_output[j] = error * DSigmoid(output_layer[j]);
     }
 
-    end = clock();
-    double time_spent = ((double)(end-start)/CLOCKS_PER_SEC);
+   // Compute change in hidden weights
+   double delta_hidden_3[NUM_HIDDEN_3];
+   for(int j = 0; j<NUM_HIDDEN_3; j++){
+     double error = 0.0f;
+     for(int k = 0; k<NUM_OUTPUT; k++){
+       error += delta_output[k] * output_weights[j][k];
+     }
+     delta_hidden_3[j] = error * DSigmoid(hidden_layer_3[j]);
+    }
 
-    printf("\nTime taken to run the NN in C: %f seconds\n", time_spent);
-    return 0;
+   double delta_hidden_2[NUM_HIDDEN_2];
+   for(int j = 0; j<NUM_HIDDEN_2; j++){
+     double error = 0.0f;
+     for(int k = 0; k<NUM_HIDDEN_3; k++){
+       error += delta_hidden_3[k] * hidden_weights_hidden_2_to_3[j][k];
+     }
+     delta_hidden_2[j] = error * DSigmoid(hidden_layer_2[j]);
+    }
+
+   double delta_hidden_1[NUM_HIDDEN_1];
+   for(int j = 0; j<NUM_HIDDEN_1; j++){
+     double error = 0.0f;
+     for(int k = 0; k<NUM_HIDDEN_2; k++){
+       error += delta_hidden_2[k] * hidden_weights_hidden_1_to_2[j][k];
+     }
+     delta_hidden_1[j] = error * DSigmoid(hidden_layer_1[j]);
+    }
+#+end_src
+
+Apply changes to =weights=.
+
+#+name: ap
+#+begin_src C :cmdline -lm :tangle nn.c :main no :noweb yes
+  <<back>>
+    // Apply changes in output weights
+  for(int j = 0; j<NUM_OUTPUT; j++){
+    output_layer_bias[j] += delta_output[j] * lr;
+    for(int k = 0; k<NUM_HIDDEN_3; k++){
+      output_weights[k][j] += hidden_layer_3[k] * delta_output[j] * lr;
+    }
+   }
+
+  for(int j = 0; j<NUM_HIDDEN_3; j++){
+    hidden_layer_bias_3[j] += delta_hidden_3[j] * lr;
+    for(int k = 0; k<NUM_HIDDEN_2; k++){
+      hidden_weights_hidden_2_to_3[k][j] += hidden_layer_2[k] * delta_hidden_3[j] * lr;
+    }
+   }
+
+  for(int j = 0; j<NUM_HIDDEN_2; j++){
+    hidden_layer_bias_2[j] += delta_hidden_2[j] * lr;
+    for(int k = 0; k<NUM_HIDDEN_1; k++){
+      hidden_weights_hidden_1_to_2[k][j] += hidden_layer_1[k] * delta_hidden_2[j] * lr;
+    }
+   }
+
+  // Apply changes in hidden weights
+  for(int j = 0; j<NUM_HIDDEN_1; j++){
+    hidden_layer_bias_1[j] += delta_hidden_1[j] * lr;
+    for(int k = 0; k<NUM_INPUT; k++){
+      hidden_weights_input_hidden_1[k][j] += training_inputs[i][k] * delta_hidden_1[j] * lr;
+    }
+   }
+  printf("Epoch: %d Input: %g %g  Output: %g  Expected Output: %g \n", 
+         epoch, training_inputs[i][0], training_inputs[i][1], 
+         output_layer[0], training_outputs[i][0]);
+  }
+
+  }
+  #+end_src
+
+End of main and function declarations.
+#+name: func
+#+begin_src C :cmdline -lm :tangle nn.c :main no :noweb yes
+  <<ap>>
+  end = clock();
+  double time_spent = ((double)(end-start)/CLOCKS_PER_SEC);
+
+  printf("\nTime taken to run the NN in C: %f seconds\n", time_spent);
+  return 0;
   }
 
   // Function declarations
@@ -355,6 +376,10 @@ Random Initialize =Weights= and =Biases= in the Network.
     }
   }
 #+end_src
+
+#+RESULTS: func
+
+#+RESULTS: ap
 
 #+RESULTS:
 
