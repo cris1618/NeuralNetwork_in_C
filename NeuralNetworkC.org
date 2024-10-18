@@ -39,10 +39,20 @@ abstract these processes.
 
 
 ** Neural Network in C
-First of all, we need to define the structure of the =NN= and 
-create the prototype for the functions needed
+First of all, we need to define the structure of the =NN= and create the 
+prototypes for the necessary functions. The network consists of two =inputs=, 
+three =hidden layers= (with 3 =neurons= each, although the number of neurons 
+may vary for testing purposes), and one =output=, which is the prediction for 
+the =XOR= operation.
+
+The most important functions include the =sigmoid=, which will serve as the activation 
+function for the neurons in the network, and the =Derivative of Sigmoid= (=DSigmoid=), 
+which is essential during backpropagation to update the weights. We need also a 
+function to randomly initialize the weights and biases in the network (=init_weights=), 
+ensuring that the learning process starts with non-zero values.
+
 #+name: fp
-#+begin_src C :cmdline -lm :tangle nn.c :main no 
+#+begin_src C :cmdline -lm :main no 
   /*******************************************************/
   // nn.c: Create a basic NN that can learn XOR in C. 
   // (C) Cristian Del Gobbo Licence: GPLv3. 
@@ -90,14 +100,19 @@ create the prototype for the functions needed
   double DLeakyReLU(double x);
   
   #+end_src
-  
-  The layers, weights and biases can be represented through simple =arrays=
-  which store the activation values for the layers arrays and the weights and 
-  biases for the corresponding layers.
 
-  #+name: NN Structure
-  #+begin_src C :cmdline -lm :tangle nn.c :main no :noweb yes
-   // main function
+#+RESULTS: fp
+  
+The layers, weights, and biases can be represented through simple =arrays=, which store 
+the activation values for the layers and the corresponding weights and biases for each layer.
+
+The =training inputs= and =training outputs= represent the four cases for the =XOR= operation. 
+This is a first approach, and in the future, I plan to experiment with different types of 
+data to train the =Network=.
+
+#+name: NN_Structure
+#+begin_src C :noweb yes :results output
+  // main function
   <<fp>>
   int main(){
     // Start timer
@@ -133,158 +148,191 @@ create the prototype for the functions needed
                                                               {1.0f}, 
                                                               {1.0f}, 
                                                               {0.0f}};
-#+end_src
+    #+end_src
 
-#+RESULTS: NN Structure
+#+RESULTS: NN_Structure
 
-Random Initialize =Weights= and =Biases= in the Network.
- #+name: init w and b
- #+begin_src C :cmdline -lm :tangle nn.c :main no :noweb yes
-    <<NN structure>>
+
+Here, we randomly initialize the =Weights= and =Biases= for the network. This ensures that the 
+network starts without any built-in bias and can learn effectively. We initialize the weights 
+for the connections between each layer, from input to hidden layers, and from hidden layers to 
+the output layer, using the =init_weights= function. The biases are also initialized similarly for 
+the output layer.
+
+#+name: init_w_and_b
+#+begin_src C :cmdline -lm :main no :noweb yes
+  <<NN_structure>>
     // Input to Hidden layer
-    for(int i = 0; i < NUM_INPUT; i++){
-      for(int j = 0; j < NUM_HIDDEN_1; j++){
-        hidden_weights_input_hidden_1[i][j] = init_weights();
-      }
+  for(int i = 0; i < NUM_INPUT; i++){
+    for(int j = 0; j < NUM_HIDDEN_1; j++){
+      hidden_weights_input_hidden_1[i][j] = init_weights();
     }
+   }
 
-    for(int i = 0; i < NUM_HIDDEN_1; i++){
-      for(int j = 0; j < NUM_HIDDEN_2; j++){
-        hidden_weights_hidden_1_to_2[i][j] = init_weights();
-      }
+  for(int i = 0; i < NUM_HIDDEN_1; i++){
+    for(int j = 0; j < NUM_HIDDEN_2; j++){
+      hidden_weights_hidden_1_to_2[i][j] = init_weights();
     }
+   }
 
-    for(int i = 0; i < NUM_HIDDEN_2; i++){
-      for(int j = 0; j < NUM_HIDDEN_3; j++){
-        hidden_weights_hidden_2_to_3[i][j] = init_weights();
-      }
+  for(int i = 0; i < NUM_HIDDEN_2; i++){
+    for(int j = 0; j < NUM_HIDDEN_3; j++){
+      hidden_weights_hidden_2_to_3[i][j] = init_weights();
     }
+   }
 
 
-    // Hidden to Output layer
-    for(int i = 0; i < NUM_HIDDEN_3; i++){
-      for(int j = 0; j < NUM_OUTPUT; j++){
-        output_weights[i][j] = init_weights();
-      }
+  // Hidden to Output layer
+  for(int i = 0; i < NUM_HIDDEN_3; i++){
+    for(int j = 0; j < NUM_OUTPUT; j++){
+      output_weights[i][j] = init_weights();
     }
+   }
 
-    // Initialize Biases
-    for(int i = 0; i<NUM_OUTPUT; i++){
-      output_layer_bias[i] = init_weights();
-    }
+  // Initialize Biases
+  for(int i = 0; i<NUM_OUTPUT; i++){
+    output_layer_bias[i] = init_weights();
+   }
 #+end_src
 
-#+RESULTS: init w and b
+#+RESULTS: init_w_and_b
+
  
-Begin =Training= and =Forward= pass.
- #+name: forward
- #+begin_src C :cmdline -lm :tangle nn.c :main no :noweb yes
-   <<init w and b>>
+Finally, =training=! In the forward pass, I used the randomly initialized weights and biases to compute 
+the activation of each neuron. The activations are wrapped in the =Sigmoid= activation function, starting 
+from the input layer, passing through the 3 hidden layers, and finally reaching the output.
 
-     // Shuffle Training set order
-   int training_set_order[] = {0, 1, 2, 3};
+#+name: forward
+#+begin_src C :cmdline -lm :main no :noweb yes
+  <<init_w_and_b>>
 
-   // Number of Epochs to train the model
-   int number_of_epochs = 10000;
+  // Shuffle Training set order
+  int training_set_order[] = {0, 1, 2, 3};
 
-   // Train the neural network for n number of epochs
-   for(int epoch = 0; epoch<number_of_epochs; epoch++){
-     shuflle(training_set_order, NUM_TRAINING_SETS);
-     for(int x = 0; x<NUM_TRAINING_SETS; x++){
-       int i = training_set_order[x];
+  // Number of Epochs to train the model
+  int number_of_epochs = 10000;
 
-       // Forward pass
-       // Compute Hidden Layer activation
-       for(int j = 0; j < NUM_HIDDEN_1; j++){
-         double activation = hidden_layer_bias_1[j];
-         for(int k = 0; k < NUM_INPUT; k++){
-           activation += training_inputs[i][k] * hidden_weights_input_hidden_1[k][j];
-         }
-         //hidden_layer_1[j] =  LeakyReLU(activation);
-         hidden_layer_1[j] = sigmoid(activation);
-       }
+  // Train the neural network for n number of epochs
+  for(int epoch = 0; epoch<number_of_epochs; epoch++){
+    shuflle(training_set_order, NUM_TRAINING_SETS);
+    for(int x = 0; x<NUM_TRAINING_SETS; x++){
+      int i = training_set_order[x];
 
-       for(int j = 0; j < NUM_HIDDEN_2; j++){
-         double activation = hidden_layer_bias_2[j];
-         for(int k = 0; k < NUM_HIDDEN_1; k++){
-           //activation += hidden_layer_1[k] * hidden_weights_hidden_1_to_2[k][j]; //Changed
-           activation += training_inputs[i][k] * hidden_weights_hidden_1_to_2[k][j];
-         }
-         //hidden_layer_2[j] =   LeakyReLU(activation);
-         hidden_layer_2[j] = sigmoid(activation);
-       }
+      // Forward pass
+      // Compute Hidden Layer activation
+      for(int j = 0; j < NUM_HIDDEN_1; j++){
+        double activation = hidden_layer_bias_1[j];
+        for(int k = 0; k < NUM_INPUT; k++){
+          activation += training_inputs[i][k] * hidden_weights_input_hidden_1[k][j];
+        }
+        //hidden_layer_1[j] =  LeakyReLU(activation);
+        hidden_layer_1[j] = sigmoid(activation);
+      }
 
-       for(int j = 0; j < NUM_HIDDEN_3; j++){
-         double activation = hidden_layer_bias_3[j];
-         for(int k = 0; k < NUM_HIDDEN_2; k++){
-           //activation += hidden_layer_2[k] * hidden_weights_hidden_2_to_3[k][j]; //Changed
-           activation += training_inputs[i][k] * hidden_weights_hidden_2_to_3[k][j];
-         }
-         //hidden_layer_3[j] =   LeakyReLU(activation);
-         hidden_layer_3[j] = sigmoid(activation);
-       }
+      for(int j = 0; j < NUM_HIDDEN_2; j++){
+        double activation = hidden_layer_bias_2[j];
+        for(int k = 0; k < NUM_HIDDEN_1; k++){
+          //activation += hidden_layer_1[k] * hidden_weights_hidden_1_to_2[k][j]; //Changed
+          activation += training_inputs[i][k] * hidden_weights_hidden_1_to_2[k][j];
+        }
+        //hidden_layer_2[j] =   LeakyReLU(activation);
+        hidden_layer_2[j] = sigmoid(activation);
+      }
+
+      for(int j = 0; j < NUM_HIDDEN_3; j++){
+        double activation = hidden_layer_bias_3[j];
+        for(int k = 0; k < NUM_HIDDEN_2; k++){
+          //activation += hidden_layer_2[k] * hidden_weights_hidden_2_to_3[k][j]; //Changed
+          activation += training_inputs[i][k] * hidden_weights_hidden_2_to_3[k][j];
+        }
+        //hidden_layer_3[j] =   LeakyReLU(activation);
+        hidden_layer_3[j] = sigmoid(activation);
+      }
 
 
-       // Compute Output Layer activation
-       for(int j = 0; j < NUM_OUTPUT; j++){
-         double activation = output_layer_bias[j];
-         for(int k = 0; k < NUM_HIDDEN_3; k++){
-           activation += hidden_layer_3[k] * output_weights[k][j];
-         }
-         output_layer[j] = sigmoid(activation);
-       }
+      // Compute Output Layer activation
+      for(int j = 0; j < NUM_OUTPUT; j++){
+        double activation = output_layer_bias[j];
+        for(int k = 0; k < NUM_HIDDEN_3; k++){
+          activation += hidden_layer_3[k] * output_weights[k][j];
+        }
+        output_layer[j] = sigmoid(activation);
+      }
 #+end_src
 
 #+RESULTS: forward
 
-=Backpropagation.=
- #+name: back
- #+begin_src C :cmdline -lm :tangle nn.c :main no :noweb yes
-   <<forward>>
-     // Backpropagation
-     // Compute change in output weights
-   double delta_output[NUM_OUTPUT];
+In the backpropagation, the first step is to calculate the error for the =output layer= by comparing 
+the predicted output to the actual =training outputs=. This error is then multiplied by the derivative 
+of the =Sigmoid= function to compute the =delta= for the output layer.
 
-   for(int j = 0; j<NUM_OUTPUT; j++){
-     double error = (training_outputs[i][j] - output_layer[j]);
-     delta_output[j] = error * DSigmoid(output_layer[j]);
-    }
+Next, we compute the =delta= for the third hidden layer by propagating the error backward from the output 
+layer. This is done by multiplying the error from the =output weights= by the =delta_output= and passing it 
+through the derivative of the =Sigmoid= function for the activations in the third hidden layer.
 
-   // Compute change in hidden weights
-   double delta_hidden_3[NUM_HIDDEN_3];
-   for(int j = 0; j<NUM_HIDDEN_3; j++){
-     double error = 0.0f;
-     for(int k = 0; k<NUM_OUTPUT; k++){
-       error += delta_output[k] * output_weights[j][k];
-     }
-     delta_hidden_3[j] = error * DSigmoid(hidden_layer_3[j]);
-    }
+The process is repeated for the second and first hidden layers, using the error from the previous layers 
+and multiplying by the corresponding weights and the derivative of the =Sigmoid= function to compute the =delta= 
+values for each layer.
 
-   double delta_hidden_2[NUM_HIDDEN_2];
-   for(int j = 0; j<NUM_HIDDEN_2; j++){
-     double error = 0.0f;
-     for(int k = 0; k<NUM_HIDDEN_3; k++){
-       error += delta_hidden_3[k] * hidden_weights_hidden_2_to_3[j][k];
-     }
-     delta_hidden_2[j] = error * DSigmoid(hidden_layer_2[j]);
-    }
+#+name: back
+#+begin_src C :cmdline -lm :main no :noweb yes
+  <<forward>>
+    // Backpropagation
+    // Compute change in output weights
+  double delta_output[NUM_OUTPUT];
 
-   double delta_hidden_1[NUM_HIDDEN_1];
-   for(int j = 0; j<NUM_HIDDEN_1; j++){
-     double error = 0.0f;
-     for(int k = 0; k<NUM_HIDDEN_2; k++){
-       error += delta_hidden_2[k] * hidden_weights_hidden_1_to_2[j][k];
-     }
-     delta_hidden_1[j] = error * DSigmoid(hidden_layer_1[j]);
+  for(int j = 0; j<NUM_OUTPUT; j++){
+    double error = (training_outputs[i][j] - output_layer[j]);
+    delta_output[j] = error * DSigmoid(output_layer[j]);
+   }
+
+  // Compute change in hidden weights
+  double delta_hidden_3[NUM_HIDDEN_3];
+  for(int j = 0; j<NUM_HIDDEN_3; j++){
+    double error = 0.0f;
+    for(int k = 0; k<NUM_OUTPUT; k++){
+      error += delta_output[k] * output_weights[j][k];
     }
+    delta_hidden_3[j] = error * DSigmoid(hidden_layer_3[j]);
+   }
+
+  double delta_hidden_2[NUM_HIDDEN_2];
+  for(int j = 0; j<NUM_HIDDEN_2; j++){
+    double error = 0.0f;
+    for(int k = 0; k<NUM_HIDDEN_3; k++){
+      error += delta_hidden_3[k] * hidden_weights_hidden_2_to_3[j][k];
+    }
+    delta_hidden_2[j] = error * DSigmoid(hidden_layer_2[j]);
+   }
+
+  double delta_hidden_1[NUM_HIDDEN_1];
+  for(int j = 0; j<NUM_HIDDEN_1; j++){
+    double error = 0.0f;
+    for(int k = 0; k<NUM_HIDDEN_2; k++){
+      error += delta_hidden_2[k] * hidden_weights_hidden_1_to_2[j][k];
+    }
+    delta_hidden_1[j] = error * DSigmoid(hidden_layer_1[j]);
+   }
 #+end_src
 
-Apply changes to =weights=.
+#+RESULTS: back
+
+After calculating the =delta= values during backpropagation, we apply the changes to the =weights= and =biases= for 
+each layer.
+
+Starting with the =output layer=, the =output weights= are adjusted by multiplying the corresponding =delta_output= 
+values with the learning rate and adding them to the existing weights. The =output layer biases= are updated in a 
+similar way.
+
+Then, for each hidden layer, the same process is followed. The =delta_hidden= values are used to update the =weights= 
+and =biases= between the layers, starting from the third hidden layer and going back to the first. This ensures that 
+the network adjusts its weights and biases based on the error from the forward pass and optimizes the network's 
+predictions through training.
 
 #+name: ap
-#+begin_src C :cmdline -lm :tangle nn.c :main no :noweb yes
+#+begin_src C :cmdline -lm :main no :noweb yes :results output
   <<back>>
-    // Apply changes in output weights
+  // Apply changes in output weights
   for(int j = 0; j<NUM_OUTPUT; j++){
     output_layer_bias[j] += delta_output[j] * lr;
     for(int k = 0; k<NUM_HIDDEN_3; k++){
@@ -319,10 +367,14 @@ Apply changes to =weights=.
   }
 
   }
-  #+end_src
+#+end_src
 
-End of main and function declarations.
-#+name: func
+#+RESULTS: ap
+
+Almost at the end! In the =main= function, we stop the clock to measure how long the training process took and 
+then print the result.
+
+=Spoiler alert=: It's going to be much faster than the equivalent implementation in Python.
 #+begin_src C :cmdline -lm :tangle nn.c :main no :noweb yes
   <<ap>>
   end = clock();
@@ -379,11 +431,12 @@ End of main and function declarations.
 
 #+RESULTS: func
 
-#+RESULTS: ap
-
 #+RESULTS:
 
 ** Neural Network in Python (PyTorch)
+In the following code block is the 'Classic' =PyTorch= implementation of the same neural network. 
+It’s definitely much shorter, but how does it compare in terms of training time and efficiency? 
+
 #+begin_src python :results output :tangle nn.py
   import time
   import torch
@@ -415,15 +468,15 @@ End of main and function declarations.
 
   # Training data
   inputs = torch.tensor([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0]])
-  inputs = inputs.repeat(1000, 1)
+  #inputs = inputs.repeat(1000, 1)
   targets = torch.tensor([[0.0], [1.0], [1.0], [0.0]])
-  targets = targets.repeat(1000, 1)
+  #targets = targets.repeat(1000, 1)
 
   # Measure the execution time
   start_time = time.time()
 
   # Training the network
-  epochs = 1
+  epochs = 10000
   for epoch in range(epochs):
       for i in range(inputs.size(0)):
           optimizer.zero_grad()
@@ -436,113 +489,168 @@ End of main and function declarations.
   # End time
   end_time = time.time()
 
-  print(f"\nTime taken to run the NN in Python: {end_time - start_time} seconds")
+  print(f"\nTime taken to run the NN in Python (PyTorch): {end_time - start_time:.6f} seconds")
 
 #+end_src
 
 #+RESULTS:
 
 ** Neural Network in Python (From Scratch)
+Before comparing the speed and efficiency of the =C= and =PyTorch= networks, I first wanted to create 
+a similar implementation from scratch using plain =Python=, without the abstraction provided by =PyTorch=. 
+This way, I can assess if =PyTorch='s abstraction slows it down compared to a raw Python implementation.
+
 #+begin_src python :results output :tangle nns.py
-  import numpy as np
+import numpy as np
 import random
- import time
+import time
 
-    num_input = 2
-    num_hidden_1 = 3
-    num_hidden_2 = 3
-    num_hidden_3 = 3
-    num_output = 1
-    num_training_set = 4
+num_input = 2
+num_hidden_1 = 3
+num_hidden_2 = 3
+num_hidden_3 = 3
+num_output = 1
+num_training_sets = 4
 
-    def sigmoid(x):
+def sigmoid(x):
     return 1/(1+np.exp(-x))
 
-  def DSigmoid(x):
-  return x * (1-x)
+def DSigmoid(x):
+    return x * (1-x)
 
 def init_weights():
-return random.random()
+    return random.random()
 
 start_time = time.time()
 
 lr = 0.1
 
-hidden_layer_1 = []
-hidden_layer_2 = []
-hidden_layer_3 = []
-output_layer = []
+hidden_layer_1 = np.zeros(num_hidden_1)
+hidden_layer_2 = np.zeros(num_hidden_2)
+hidden_layer_3 = np.zeros(num_hidden_3)
+output_layer = np.zeros(num_output)
 
-hidden_layer_bias_1 = []
-hidden_layer_bias_2 = []
-hidden_layer_bias_3 = []
+hidden_layer_bias_1 = np.random.rand(num_hidden_1)
+hidden_layer_bias_2 = np.random.rand(num_hidden_2)
+hidden_layer_bias_3 = np.random.rand(num_hidden_3)
 output_layer_bias = np.random.rand(num_output)
 
 hidden_weights_input_hidden_1 = np.random.rand(num_input, num_hidden_1)
 hidden_weights_hidden_1_to_2 = np.random.rand(num_hidden_1, num_hidden_2)
-hidden_weights_hidden_2_to_3 = np.random.rand(num_hidden_2, num_hiidden_3)
+hidden_weights_hidden_2_to_3 = np.random.rand(num_hidden_2, num_hidden_3)
 output_weights = np.random.rand(num_hidden_3, num_output)
 
-training_inputs = [[0.0,0.0],[1.0, 0.0],[0.0, 1.0], [1.0, 1.0]]
-training_outputs = [[0.0],[1.0],[1.0],[0.0]]
+training_inputs = [[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0]]
+training_outputs = [[0.0], [1.0], [1.0], [0.0]]
 
-training_set_order = [0,1,2,3]
+training_set_order = [0, 1, 2, 3]
 
-number_of_epochs = 1000
+number_of_epochs = 10000
 
+# Start training 
 for epoch in range(number_of_epochs):
-training_set_order = random.shuffle(training_set_order)
-for x in range(num_training_sets):
-i = training_set_order[x]
+    random.shuffle(training_set_order)
+    for x in range(num_training_sets):
+        i = training_set_order[x]
 
-for j in range(num_hidden_1):
-activation = hidden_layer_bias_1[j]
-for k in range(num_input):
-activation += training_inputs[i][k] * hidden_weights_input_hidden_1[k][j]
-hidden_layer_1[j] = sigmoid(activation)
+        for j in range(num_hidden_1):
+            activation = hidden_layer_bias_1[j]
+            for k in range(num_input):
+                activation += training_inputs[i][k] * hidden_weights_input_hidden_1[k][j]
+            hidden_layer_1[j] = sigmoid(activation)
 
+        for j in range(num_hidden_2):
+            activation = hidden_layer_bias_2[j]
+            for k in range(num_hidden_1):
+                activation += hidden_layer_1[k] * hidden_weights_hidden_1_to_2[k][j]
+            hidden_layer_2[j] = sigmoid(activation)
 
-for j in range(num_hidden_2):
-activation = hidden_layer_bias_2[j]
-for k in range(num_hidden_1):
-activation += hidden_layer_1[k] * hidden_weights_hidden_1_to_2[k][j]
-hidden_layer_2[j] = sigmoid(activation)
+        for j in range(num_hidden_3):
+            activation = hidden_layer_bias_3[j]
+            for k in range(num_hidden_2):
+                activation += hidden_layer_2[k] * hidden_weights_hidden_2_to_3[k][j]
+            hidden_layer_3[j] = sigmoid(activation)
 
+        for j in range(num_output):
+            activation = output_layer_bias[j]
+            for k in range(num_hidden_3):
+                activation += hidden_layer_3[k] * output_weights[k][j]
+            output_layer[j] = sigmoid(activation)
 
-for j in range(num_hidden_3):
-activation = hidden_layer_bias_3[j]
-for k in range(num_hidden_2):
-activation += hidden_layer_2[k] * hidden_weights_hidden_2_to_3[k][j]
-hidden_layer_3[j] = sigmoid(activation)
+        # Backpropagation
+        delta_output = np.zeros(num_output)
+        for j in range(num_output):
+            error = (training_outputs[i][j] - output_layer[j])
+            delta_output[j] = error * DSigmoid(output_layer[j])
 
+        delta_hidden_3 = np.zeros(num_hidden_3)
+        for j in range(num_hidden_3):
+            error = 0.0
+            for k in range(num_output):
+                error += delta_output[k] * output_weights[j][k]
+            delta_hidden_3[j] = error * DSigmoid(hidden_layer_3[j])
 
-for j in range(num_output):
-activation = output_layer_bias[j]
-for k in range(num_hidden_3):
-activation += hidden_layer_3[k] * output_weights[k][j]
-output_layer[j] = sigmoid(activation)
+        delta_hidden_2 = np.zeros(num_hidden_2)
+        for j in range(num_hidden_2):
+            error = 0.0
+            for k in range(num_hidden_3):
+                error += delta_hidden_3[k] * hidden_weights_hidden_2_to_3[k][j]
+            delta_hidden_2[j] = error * DSigmoid(hidden_layer_2[j])
 
-# Backpropagation
+        delta_hidden_1 = np.zeros(num_hidden_1)
+        for j in range(num_hidden_1):
+            error = 0.0
+            for k in range(num_hidden_2):
+                error += delta_hidden_2[k] * hidden_weights_hidden_1_to_2[k][j]
+            delta_hidden_1[j] = error * DSigmoid(hidden_layer_1[j])
 
+        # Apply changes 
+        for j in range(num_output):
+            output_layer_bias[j] += delta_output[j] * lr
+            for k in range(num_hidden_3):
+                output_weights[k][j] += hidden_layer_3[k] * delta_output[j] * lr
 
-    #+end_src
+        for j in range(num_hidden_3):
+            hidden_layer_bias_3[j] += delta_hidden_3[j] * lr
+            for k in range(num_hidden_2):
+                hidden_weights_hidden_2_to_3[k][j] += hidden_layer_2[k] * delta_hidden_3[j] * lr
+
+        for j in range(num_hidden_2):
+            hidden_layer_bias_2[j] += delta_hidden_2[j] * lr
+            for k in range(num_hidden_1):
+                hidden_weights_hidden_1_to_2[k][j] += hidden_layer_1[k] * delta_hidden_2[j] * lr
+
+        for j in range(num_hidden_1):
+            hidden_layer_bias_1[j] += delta_hidden_1[j] * lr
+            for k in range(num_input):
+                hidden_weights_input_hidden_1[k][j] += training_inputs[i][k] * delta_hidden_1[j] * lr
+
+        print(f"Epoch: {epoch}, Input: {training_inputs[i][0]} {training_inputs[i][1]}, Output: {output_layer[0]}, Expected Output: {training_outputs[i][0]}")
+
+end_time = time.time()
+print(f"\nTime taken to run the NN in Python (From Scratch): {end_time - start_time:.6f} seconds")
+
+#+end_src
 
 #+RESULTS:
 
 * Expected Results
-Not surprisingly, =C= is significantly faster than =Python= when comparing the runtime 
+Not surprisingly, =C= is significantly faster than =Python= (Both PyTorch and Python from scratch) when comparing the runtime 
 for the neural network implementations above. Below is a screenshot of the outputs 
-from the =C= and =Python= code, both executed with 1000 epochs:
+from the =C= and =Python= codes, both executed with 10000 epochs:
 
 #+LATEX_HEADER: \usepackage{float}
 #+CAPTION: Final Comparison.
 #+ATTR_LATEX: :float nil :placement [H] :width 0.4\textwidth
-[[./Images/C_vs_Py_1.png]]
+[[./Images/comparison.png]]
 
 However, I want to highlight a few key points:
 
 - Implementing the neural network in =PyTorch= is much easier due to the high level 
   of abstraction provided by the framework.
+
+- The Python From Scratch version outperformed the PyTorch version, it was more than 
+  10 seconds faster. 
 
 - Writing the neural network code in =C= gives a deeper understanding of each step of 
   the process, making it a valuable learning experience. I would recommend this approach 
